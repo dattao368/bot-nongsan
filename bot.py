@@ -72,8 +72,14 @@ async def on_message(message):
     if message.guild is None:
         return
 
-    if message.channel.id != CHANNEL_BAO_ID:
-        return  # ❌ kênh khác không xử lý
+    guild_id = str(message.guild.id)
+
+    if guild_id not in config:
+        return
+
+    if message.channel.id != config[guild_id]["channel_id"]:
+        return
+
 
     if time.time() - last_send < 5:
         return
