@@ -1,13 +1,30 @@
 import discord
 import os
+import time
+import threading
+from flask import Flask
+
+# ===== CHỐNG SLEEP RENDER =====
+app = Flask(__name__)
+
+@app.route("/")
+def home():
+    return "Bot is alive"
+
+def run_web():
+    app.run(host="0.0.0.0", port=8080)
+
+threading.Thread(target=run_web).start()
+# ==============================
 
 intents = discord.Intents.default()
 intents.message_content = True
 
 client = discord.Client(intents=intents)
 
-# 👉 DÁN ID ROLE NÔNG DÂN VÀO ĐÂY
-ROLE_NONG_DAN_ID = 1465291719087100059  # <-- đổi số này
+ROLE_NONG_DAN_ID = 1465291719087100059  # đổi nếu cần
+
+last_send = 0  # chống spam
 
 nong_san = {
     "bí ngô": "🎃",
@@ -47,7 +64,18 @@ async def on_ready():
 
 @client.event
 async def on_message(message):
+    global last_send
+
     if message.author.bot:
+        return
+
+    if message.guild is None:
+        return
+
+    if message.channel.id != CHANNEL_BAO_ID:
+        return  # ❌ kênh khác không xử lý
+
+    if time.time() - last_send < 5:
         return
 
     text = message.content.lower()
@@ -60,6 +88,7 @@ async def on_message(message):
             await message.channel.send(
                 f"{tag_role}\n{emoji} **NÔNG SẢN ĐANG BÁN: {ten.upper()}**"
             )
+            last_send = time.time()
             return
 
     for ten, emoji in thoi_tiet.items():
@@ -67,15 +96,16 @@ async def on_message(message):
             await message.channel.send(
                 f"{tag_role}\n{emoji} **THỜI TIẾT XUẤT HIỆN: {ten.upper()}**"
             )
+            last_send = time.time()
             return
-        
+
     for ten, emoji in dung_cu.items():
         if ten in text:
             await message.channel.send(
                 f"{tag_role}\n{emoji} **DỤNG CỤ ĐANG BÁN: {ten.upper()}**"
             )
+            last_send = time.time()
             return
-
 
 TOKEN = os.getenv("DISCORD_TOKEN")
 client.run(TOKEN)
