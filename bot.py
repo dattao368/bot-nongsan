@@ -11,11 +11,14 @@ ROLE_NONG_DAN_ID = 1465291719087100059  # <-- đổi số này
 
 nong_san = {
     "bí ngô": "🎃",
+    "bí": "🎃",
     "dưa hấu": "🍉",
+    "dưa": "🍉",
     "dừa": "🥥",
     "xoài": "🥭",
     "trái cổ đại": "🗿",
     "đậu thần": "🌱",
+    "đậu": "🌱",
     "khế": "⭐",
     "táo đường": "🍎"
 }
@@ -24,7 +27,7 @@ thoi_tiet = {
     "bão tuyết": "🌨️",
     "tuyết": "❄️",
     "mưa": "🌧️",
-    "bão": "🌪️",
+    "bão": "⛈️",
     "sương mù": "🌫️",
     "sương sớm": "🌁",
     "ánh trăng": "🌙",
@@ -32,6 +35,10 @@ thoi_tiet = {
     "gió": "💨",
     "gió cát": "🏜️",
     "nắng nóng": "☀️"
+}
+
+dung_cu = {
+    "vòi đỏ": "🚿"
 }
 
 @client.event
@@ -51,14 +58,21 @@ async def on_message(message):
     for ten, emoji in nong_san.items():
         if ten in text:
             await message.channel.send(
-                f"{tag_role}\n{emoji} **NÔNG SẢN XUẤT HIỆN: {ten.upper()}**"
+                f"{tag_role}\n{emoji} **NÔNG SẢN ĐANG BÁN: {ten.upper()}**"
             )
             return
 
     for ten, emoji in thoi_tiet.items():
         if ten in text:
             await message.channel.send(
-                f"{tag_role}\n{emoji} **THỜI TIẾT: {ten.upper()}**"
+                f"{tag_role}\n{emoji} **THỜI TIẾT XUẤT HIỆN: {ten.upper()}**"
+            )
+            return
+        
+    for ten, emoji in dung_cu.items():
+        if ten in text:
+            await message.channel.send(
+                f"{tag_role}\n{emoji} **DỤNG CỤ ĐANG BÁN: {ten.upper()}**"
             )
             return
 
