@@ -6,60 +6,62 @@ intents.message_content = True
 
 client = discord.Client(intents=intents)
 
-# DANH SÁCH NÔNG SẢN
-NONG_SAN = {
-    "bí ngô": "🎃 Bí Ngô",
-    "dưa hấu": "🍉 Dưa Hấu",
-    "dừa": "🥥 Dừa",
-    "xoài": "🥭 Xoài",
-    "trái cổ đại": "🗿 Trái Cổ Đại",
-    "đậu thần": "🫘 Đậu Thần",
-    "khế": "⭐ Khế",
-    "táo đường": "🍎 Táo Đường"
+# 👉 DÁN ID ROLE NÔNG DÂN VÀO ĐÂY
+ROLE_NONG_DAN_ID = 1465291719087100059  # <-- đổi số này
+
+nong_san = {
+    "bí ngô": "🎃",
+    "dưa hấu": "🍉",
+    "dừa": "🥥",
+    "xoài": "🥭",
+    "trái cổ đại": "🗿",
+    "đậu thần": "🌱",
+    "khế": "⭐",
+    "táo đường": "🍎"
 }
 
-# DANH SÁCH THỜI TIẾT
-THOI_TIET = {
-    "bão tuyết": "❄️ Bão Tuyết",
-    "tuyết": "🌨️ Tuyết",
-    "mưa": "🌧️ Mưa",
-    "bão": "🌪️ Bão",
-    "sương mù": "🌫️ Sương Mù",
-    "sương sớm": "🌁 Sương Sớm",
-    "ánh trăng": "🌙 Ánh Trăng",
-    "cực quang": "🌌 Cực Quang",
-    "gió": "💨 Gió",
-    "gió cát": "🏜️ Gió Cát",
-    "nắng nóng": "☀️ Nắng Nóng"
+thoi_tiet = {
+    "bão tuyết": "🌨️",
+    "tuyết": "❄️",
+    "mưa": "🌧️",
+    "bão": "🌪️",
+    "sương mù": "🌫️",
+    "sương sớm": "🌁",
+    "ánh trăng": "🌙",
+    "cực quang": "🌌",
+    "gió": "💨",
+    "gió cát": "🏜️",
+    "nắng nóng": "☀️"
 }
 
 @client.event
 async def on_ready():
-    print(f"✅ Bot online: {client.user}")
+    print(f"✅ Bot đã online: {client.user}")
 
 @client.event
 async def on_message(message):
     if message.author.bot:
         return
 
-    text = message.content.lower().strip()
+    text = message.content.lower()
 
-    # KIỂM TRA NÔNG SẢN
-    for key in NONG_SAN:
-        if key in text:
-            await message.channel.send(f"🌾 **Phát hiện nông sản:** {NONG_SAN[key]}")
+    role = message.guild.get_role(ROLE_NONG_DAN_ID)
+    tag_role = role.mention if role else ""
+
+    for ten, emoji in nong_san.items():
+        if ten in text:
+            await message.channel.send(
+                f"{tag_role}\n{emoji} **NÔNG SẢN XUẤT HIỆN: {ten.upper()}**"
+            )
             return
 
-    # KIỂM TRA THỜI TIẾT
-    for key in THOI_TIET:
-        if key in text:
-            await message.channel.send(f"🌦️ **Phát hiện thời tiết:** {THOI_TIET[key]}")
+    for ten, emoji in thoi_tiet.items():
+        if ten in text:
+            await message.channel.send(
+                f"{tag_role}\n{emoji} **THỜI TIẾT: {ten.upper()}**"
+            )
             return
 
-# LẤY TOKEN TỪ RENDER
+
 TOKEN = os.getenv("DISCORD_TOKEN")
-
-if TOKEN is None:
-    print("❌ CHƯA CÓ DISCORD_TOKEN TRÊN RENDER")
-else:
-    client.run(TOKEN)
+client.run(TOKEN)
