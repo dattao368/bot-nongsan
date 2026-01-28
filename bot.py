@@ -3,14 +3,19 @@ from discord.ext import commands
 import os
 
 # ==========================
-# 🔑 TOKEN (Railway Variables)
+# 🔑 TOKEN (Railway / Render Variables)
 # ==========================
 TOKEN = os.getenv("TOKEN")
+
+if TOKEN is None:
+    print("❌ LỖI: Bạn chưa thêm TOKEN vào Variables!")
+    print("👉 Railway/Render → Variables → Add TOKEN")
+    exit()
 
 # ==========================
 # 🌾 ID ROLE NÔNG DÂN
 # ==========================
-ROLE_NONG_DAN_ID = 1465291719087100059  # <-- ĐỔI ROLE ID CỦA BẠN
+ROLE_NONG_DAN_ID = 1465291719087100059  # <-- ĐỔI ROLE ID SERVER BẠN
 
 # ==========================
 # INTENTS
@@ -82,7 +87,9 @@ async def gui_thong_bao(message, loai, ten, emoji):
 # ==========================
 @bot.event
 async def on_ready():
+    print("===================================")
     print(f"✅ Bot đã online: {bot.user}")
+    print("===================================")
 
 # ==========================
 # ✅ AUTO NHẬN TIN NHẮN
