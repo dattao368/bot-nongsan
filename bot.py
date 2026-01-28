@@ -1,154 +1,104 @@
 import discord
+from discord.ext import commands
 import os
-import time
-import json
-import threading
-from flask import Flask
 
-# ================== CHỐNG SLEEP RENDER ==================
-app = Flask(__name__)
+# ==========================
+# 🔑 TOKEN (Railway Variables)
+# ==========================
+TOKEN = os.getenv("TOKEN")
 
-@app.route("/")
-def home():
-    return "Bot is alive"
+# ==========================
+# 🌾 ID ROLE NÔNG DÂN
+# ==========================
+ROLE_NONG_DAN_ID = 1465291719087100059  # <-- ĐỔI ROLE ID CỦA BẠN
 
-def run_web():
-    app.run(host="0.0.0.0", port=8080)
-
-threading.Thread(target=run_web).start()
-# ========================================================
-
+# ==========================
+# INTENTS
+# ==========================
 intents = discord.Intents.default()
 intents.message_content = True
-client = discord.Client(intents=intents)
 
-ROLE_NONG_DAN_ID = 1465291719087100059
-CONFIG_FILE = "config.json"
-COOLDOWN = 5  # giây
+bot = commands.Bot(command_prefix="!", intents=intents)
 
-last_send = 0
+# ==========================
+# 🌱 NÔNG SẢN + EMOJI
+# ==========================
+NONG_SAN = {
 
-# ================== LOAD / SAVE CONFIG ==================
-def load_config():
-    if not os.path.exists(CONFIG_FILE):
-        return {}
-    with open(CONFIG_FILE, "r", encoding="utf-8") as f:
-        try:
-            return json.load(f)
-        except:
-            return {}
+    "bí ngô": ("Bí Ngô", "<:bingo:<:bi_ngo:1465929149561704521> >"),
 
-def save_config(data):
-    with open(CONFIG_FILE, "w", encoding="utf-8") as f:
-        json.dump(data, f, indent=4)
+    "nho": ("Nho", "<:nho:1465929423147761859>"),
+    "dưa hấu": ("Dưa Hấu", "<:duahau:1465929236660490436>"),
+    "dừa": ("Dừa", "<:dua:1465929313051349035>"),
+    "xoài": ("Xoài", "<:xoai:1465929367031910514>"),
 
-config = load_config()
-# ========================================================
+    "trái cổ đại": ("Trái Cổ Đại", "<:traicoidai:1465929696498684181>"),
+    "đậu thần": ("Đậu Thần", "<:dauthan:1465929579775656069>"),
 
-# ================== DỮ LIỆU ==================
-nong_san = {
-    "bí ngô": "🎃",
-    "bí": "🎃",
-    "dưa hấu": "🍉",
-    "dưa": "🍉",
-    "dừa": "🥥",
-    "xoài": "🥭",
-    "trái cổ đại": "🗿",
-    "đậu thần": "🌱",
-    "đậu": "🌱",
-    "khế": "⭐",
-    "táo đường": "🍎"
+    "khế": ("Khế", "<:khe:1465929502533095475>"),
+    "táo đường": ("Táo Đường", "<:taoduong:1465929638365761571>")
 }
 
-thoi_tiet = {
-    "bão tuyết": "🌨️",
-    "tuyết": "❄️",
-    "mưa": "🌧️",
-    "bão": "⛈️",
-    "sương mù": "🌫️",
-    "sương sớm": "🌁",
-    "ánh trăng": "🌙",
-    "cực quang": "🌌",
-    "gió": "💨",
-    "gió cát": "🏜️",
-    "nắng nóng": "☀️"
+# ==========================
+# 🌦 THỜI TIẾT + EMOJI
+# ==========================
+THOI_TIET = {
+    "bão tuyết": ("Bão Tuyết", "<:baotuyet:1465929805064306922>"),
+    "tuyết": ("Tuyết", "<:tuyet:1465930053039689810>"),
+    "mưa": ("Mưa", "<:mua:1465930166654996490>"),
+    "mưa bão": ("Mưa Bão", "<:muabao:<:1465930483555635210> >"),
+
+    "sương mù": ("Sương Mù", "<:suongmu:1465930208195510415>"),
+    "sương sớm": ("Sương Sớm", "<:suongsom:1465930409648066581>"),
+
+    "ánh trăng": ("Ánh Trăng", "<:anhtrang:1465930353968677004>"),
+    "cực quang": ("Cực Quang", "<:cucquang:1465929983074762948>"),
+
+    "nắng nóng": ("Nắng Nóng", "<:nangnong:1465929883216777227>"),
+    "gió": ("Gió", "<:gio:1465930114390032384>"),
+    "gió cát": ("Gió Cát", "<:giocat:1465930264340599080>")
 }
 
-dung_cu = {
-    "vòi đỏ": "🚿"
+# ==========================
+# 🔧 DỤNG CỤ + EMOJI
+# ==========================
+DUNG_CU = {
+    "vòi xanh": ("Vòi Xanh", "<:voixanh:1465937030994202699>"),
+    "vòi đỏ": ("Vòi Đỏ", "<:voido:1465938120175517777>")
 }
-# ========================================================
 
-@client.event
-async def on_ready():
-    print(f"✅ Bot đã online: {client.user}")
-
-@client.event
-async def on_message(message):
-    global last_send
-
-    if message.author.bot or message.guild is None:
-        return
-
-    guild_id = str(message.guild.id)
-    text = message.content.lower().strip()
-
-    # ===== LỆNH SET CHANNEL =====
-    if text == "!setchannel":
-        if not message.author.guild_permissions.administrator:
-            await message.channel.send("❌ Chỉ admin mới dùng được lệnh này.")
-            return
-
-        config[guild_id] = {
-            "channel_id": message.channel.id
-        }
-        save_config(config)
-
-        await message.channel.send("✅ Đã đặt kênh này làm **kênh báo nông sản**.")
-        return
-
-    # ===== CHƯA SET CHANNEL =====
-    if guild_id not in config:
-        return
-
-    # ===== KHÁC CHANNEL =====
-    if message.channel.id != config[guild_id]["channel_id"]:
-        return
-
-    # ===== CHỐNG SPAM =====
-    if time.time() - last_send < COOLDOWN:
-        return
-
-    ket_qua = []
-
-    for ten, emoji in nong_san.items():
-        if ten in text:
-            ket_qua.append(f"{emoji} **Nông sản:** {ten.title()}")
-            break
-
-    for ten, emoji in thoi_tiet.items():
-        if ten in text:
-            ket_qua.append(f"{emoji} **Thời tiết:** {ten.title()}")
-            break
-
-    for ten, emoji in dung_cu.items():
-        if ten in text:
-            ket_qua.append(f"{emoji} **Dụng cụ:** {ten.title()}")
-            break
-
-    if not ket_qua:
-        return
-
+# ==========================
+# 📌 HÀM GỬI THÔNG BÁO
+# ==========================
+async def gui_thong_bao(message, loai, ten, emoji):
     role = message.guild.get_role(ROLE_NONG_DAN_ID)
-    tag_role = role.mention if role else ""
 
-    await message.channel.send(
-        f"{tag_role}\n"
-        f"📢 **THÔNG BÁO PLAY TOGETHER**\n"
-        + "\n".join(ket_qua)
+    embed = discord.Embed(
+        title=f"📢 THÔNG BÁO {loai}",
+        description=f"{emoji} **{ten}** đã xuất hiện!",
+        color=0x00ff99
     )
 
-    last_send = time.time()
+    await message.channel.send(
+        content=f"{role.mention}" if role else "",
+        embed=embed
+    )
 
-TOKEN = os.getenv("DISCORD_TOKEN")
-client.run(TOKEN)
+# ==========================
+# ✅ AUTO NHẬN TIN NHẮN
+# ==========================
+@bot.event
+async def on_message(message):
+    if message.author.bot:
+        return
+
+    text = message.content.lower().strip()
+
+    # 🌱 Nông sản
+    if text in NONG_SAN:
+        ten, emoji = NONG_SAN[text]
+        await gui_thong_bao(message, "NÔNG SẢN", ten, emoji)
+
+    # 🌦 Thời tiết
+    elif text in THOI_TIET:
+        ten, emoji = THOI_TIET[text]
