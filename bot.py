@@ -24,17 +24,13 @@ bot = commands.Bot(command_prefix="!", intents=intents)
 # 🌱 NÔNG SẢN + EMOJI
 # ==========================
 NONG_SAN = {
-
     "bí ngô": ("Bí Ngô", "<:bi_ngo:1465929149561704521>"),
-
     "nho": ("Nho", "<:nho:1465929423147761859>"),
     "dưa hấu": ("Dưa Hấu", "<:dua_hau:1465929236660490436>"),
     "dừa": ("Dừa", "<:dua:1465929313051349035>"),
     "xoài": ("Xoài", "<:xoai:1465929367031910514>"),
-
     "trái cổ đại": ("Trái Cổ Đại", "<:trai_co_dai:1465929696498684181>"),
     "đậu thần": ("Đậu Thần", "<:dau_than:1465929579775656069>"),
-
     "khế": ("Khế", "<:khe:1465929502533095475>"),
     "táo đường": ("Táo Đường", "<:tao_duong:1465929638365761571>")
 }
@@ -46,14 +42,11 @@ THOI_TIET = {
     "bão tuyết": ("Bão Tuyết", "<:bao_tuyet:1465929805064306922>"),
     "tuyết": ("Tuyết", "<:tuyet:1465930053039689810>"),
     "mưa": ("Mưa", "<:mua:1465930166654996490>"),
-    "mưa bão": ("Mưa Bão", "<:mua_bao:<:1465930483555635210> >"),
-
+    "mưa bão": ("Mưa Bão", "<:mua_bao:1465930483555635210>"),
     "sương mù": ("Sương Mù", "<:suong_mu:1465930208195510415>"),
     "sương sớm": ("Sương Sớm", "<:suong_som:1465930409648066581>"),
-
     "ánh trăng": ("Ánh Trăng", "<:anh_trang:1465930353968677004>"),
     "cực quang": ("Cực Quang", "<:cuc_quang:1465929983074762948>"),
-
     "nắng nóng": ("Nắng Nóng", "<:nang_nong:1465929883216777227>"),
     "gió": ("Gió", "<:gio:1465930114390032384>"),
     "gió cát": ("Gió Cát", "<:gio_cat:1465930264340599080>")
@@ -85,6 +78,13 @@ async def gui_thong_bao(message, loai, ten, emoji):
     )
 
 # ==========================
+# ✅ BOT ONLINE
+# ==========================
+@bot.event
+async def on_ready():
+    print(f"✅ Bot đã online: {bot.user}")
+
+# ==========================
 # ✅ AUTO NHẬN TIN NHẮN
 # ==========================
 @bot.event
@@ -102,3 +102,16 @@ async def on_message(message):
     # 🌦 Thời tiết
     elif text in THOI_TIET:
         ten, emoji = THOI_TIET[text]
+        await gui_thong_bao(message, "THỜI TIẾT", ten, emoji)
+
+    # 🔧 Dụng cụ
+    elif text in DUNG_CU:
+        ten, emoji = DUNG_CU[text]
+        await gui_thong_bao(message, "DỤNG CỤ", ten, emoji)
+
+    await bot.process_commands(message)
+
+# ==========================
+# 🚀 CHẠY BOT
+# ==========================
+bot.run(TOKEN)
