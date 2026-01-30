@@ -1,21 +1,28 @@
 import discord
 from discord.ext import commands
 import os
+import difflib
+import time
 
 # ==========================
-# 🔑 TOKEN (Railway / Render Variables)
+# 🔑 TOKEN
 # ==========================
 TOKEN = os.getenv("TOKEN")
 
 if TOKEN is None:
     print("❌ LỖI: Bạn chưa thêm TOKEN vào Variables!")
-    print("👉 Railway/Render → Variables → Add TOKEN")
     exit()
 
 # ==========================
-# 🌾 ID ROLE NÔNG DÂN
+# 📡 ID KÊNH
 # ==========================
-ROLE_NONG_DAN_ID = 1465291719087100059  # <-- ĐỔI ROLE ID SERVER BẠN
+CHANNEL_PHU_ID = 1465291905368854570      # Kênh phụ: người dùng gửi
+CHANNEL_CHINH_ID = 1466801337361764506    # Kênh chính: bot gửi thông báo
+
+# ==========================
+# 🌾 ROLE ID NÔNG DÂN
+# ==========================
+ROLE_NONG_DAN_ID = 1465291719087100059
 
 # ==========================
 # INTENTS
@@ -26,7 +33,7 @@ intents.message_content = True
 bot = commands.Bot(command_prefix="!", intents=intents)
 
 # ==========================
-# 🌱 NÔNG SẢN + EMOJI
+# 🌱 TỪ KHÓA
 # ==========================
 NONG_SAN = {
     "bí ngô": ("Bí Ngô", "<:bi_ngo:1465929149561704521>"),
@@ -40,9 +47,6 @@ NONG_SAN = {
     "táo đường": ("Táo Đường", "<:tao_duong:1465929638365761571>")
 }
 
-# ==========================
-# 🌦 THỜI TIẾT + EMOJI
-# ==========================
 THOI_TIET = {
     "bão tuyết": ("Bão Tuyết", "<:bao_tuyet:1465929805064306922>"),
     "tuyết": ("Tuyết", "<:tuyet:1465930053039689810>"),
@@ -57,18 +61,24 @@ THOI_TIET = {
     "gió cát": ("Gió Cát", "<:gio_cat:1465930264340599080>")
 }
 
-# ==========================
-# 🔧 DỤNG CỤ + EMOJI
-# ==========================
 DUNG_CU = {
     "vòi xanh": ("Vòi Xanh", "<:voi_xanh:1465937030994202699>"),
     "vòi đỏ": ("Vòi Đỏ", "<:voi_do:1465938120175517777>")
 }
 
+ALL_KEYWORDS = {**NONG_SAN, **THOI_TIET, **DUNG_CU}
+
 # ==========================
-# 📌 HÀM GỬI THÔNG BÁO
+# 🕒 COOLDOWN 7 GIÂY
+# ==========================
+cooldown = {}
+COOLDOWN_TIME = 7
+
+# ==========================
+# 📌 GỬI THÔNG BÁO
 # ==========================
 async def gui_thong_bao(message, loai, ten, emoji):
+    channel = bot.get_channel(CHANNEL_CHINH_ID)
     role = message.guild.get_role(ROLE_NONG_DAN_ID)
 
     embed = discord.Embed(
@@ -77,44 +87,63 @@ async def gui_thong_bao(message, loai, ten, emoji):
         color=0x00ff99
     )
 
-    await message.channel.send(
-        content=f"{role.mention}" if role else "",
-        embed=embed
-    )
+    await channel.send(content=f"{role.mention}", embed=embed)
+
+    # Ghi log
+    with open("log_bao.txt", "a", encoding="utf-8") as f:
+        f.write(f"{message.author} báo {loai} | {ten}\n")
 
 # ==========================
-# ✅ BOT ONLINE
+# 🤖 BOT ONLINE
 # ==========================
 @bot.event
 async def on_ready():
-    print("===================================")
-    print(f"✅ Bot đã online: {bot.user}")
-    print("===================================")
+    print(f"✅ Bot online: {bot.user}")
 
 # ==========================
-# ✅ AUTO NHẬN TIN NHẮN
+# 📩 XỬ LÝ TIN NHẮN
 # ==========================
 @bot.event
 async def on_message(message):
     if message.author.bot:
         return
 
+    # ❗ Chỉ đọc tin nhắn từ kênh phụ
+    if message.channel.id != CHANNEL_PHU_ID:
+        return
+
+    user_id = message.author.id
+    now = time.time()
+
+    # COOLDOWN
+    if user_id in cooldown and now - cooldown[user_id] < COOLDOWN_TIME:
+        return
+
+    cooldown[user_id] = now
+
     text = message.content.lower().strip()
 
-    # 🌱 Nông sản
+    # TỪ KHÓA HỢP LỆ
     if text in NONG_SAN:
         ten, emoji = NONG_SAN[text]
         await gui_thong_bao(message, "NÔNG SẢN", ten, emoji)
 
-    # 🌦 Thời tiết
     elif text in THOI_TIET:
         ten, emoji = THOI_TIET[text]
         await gui_thong_bao(message, "THỜI TIẾT", ten, emoji)
 
-    # 🔧 Dụng cụ
     elif text in DUNG_CU:
         ten, emoji = DUNG_CU[text]
         await gui_thong_bao(message, "DỤNG CỤ", ten, emoji)
+
+    else:
+        # Gợi ý từ gần giống
+        suggestion = difflib.get_close_matches(text, ALL_KEYWORDS.keys(), n=1, cutoff=0.6)
+
+        if suggestion:
+            await message.reply(f"❌ **Không có từ khóa** `{text}`.\n👉 Bạn có muốn nhập: **`{suggestion[0]}`** không?")
+        else:
+            await message.reply("❌ Từ khóa không hợp lệ! Hãy kiểm tra lại.")
 
     await bot.process_commands(message)
 
