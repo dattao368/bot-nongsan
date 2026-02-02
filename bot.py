@@ -16,8 +16,8 @@ if TOKEN is None:
 # ==========================
 # 📡 ID KÊNH
 # ==========================
-CHANNEL_PHU_ID = 1465291905368854570      
-CHANNEL_CHINH_ID = 1466801337361764506    
+CHANNEL_PHU_ID = 1465291905368854570
+CHANNEL_CHINH_ID = 1466801337361764506
 
 # ==========================
 # 🌾 ROLE ID NÔNG DÂN
@@ -71,8 +71,8 @@ ALL_KEYWORDS = {**NONG_SAN, **THOI_TIET, **DUNG_CU}
 # ==========================
 # 🕒 COOLDOWN CHỐNG SPAM
 # ==========================
-last_report = {}  # {user_id: {"keyword": text, "time": timestamp}}
-COOLDOWN_TIME = 2  # chỉ chống spam 1 từ lặp lại
+last_report = {}
+COOLDOWN_TIME = 2
 
 # ==========================
 # 📌 GỬI THÔNG BÁO
@@ -87,9 +87,14 @@ async def gui_thong_bao(message, loai, ten, emoji):
         color=0x00ff99
     )
 
-    await channel.send(content=f"{role.mention}", embed=embed)
+    # 🔥 Đây là phần giúp thông báo ngoài màn hình hiển thị đầy đủ
+    text_preview = f"{emoji} {ten} đã xuất hiện!"
 
-    # Ghi log
+    await channel.send(
+        content=f"{role.mention} • {text_preview}",
+        embed=embed
+    )
+
     with open("log_bao.txt", "a", encoding="utf-8") as f:
         f.write(f"{message.author} báo {loai} | {ten}\n")
 
@@ -121,11 +126,11 @@ async def on_message(message):
         last_time = last_report[user_id]["time"]
 
         if text == last_text and now - last_time < COOLDOWN_TIME:
-            return  # ignore nếu spam cùng từ quá nhanh
+            return
 
     last_report[user_id] = {"keyword": text, "time": now}
 
-    # ========== HỖ TRỢ NHIỀU TỪ TRONG 1 TIN ==========
+    # ========== HỖ TRỢ NHIỀU TỪ ==========
     parts = [x.strip() for x in text.split(",")]
     found = False
 
@@ -146,13 +151,13 @@ async def on_message(message):
             found = True
 
     if found:
-        return  # đã xử lý xong nhiều từ → không kiểm tra thêm
+        return
 
     # ========== GỢI Ý TỪ KHÓA ==========
     suggestion = difflib.get_close_matches(text, ALL_KEYWORDS.keys(), n=1, cutoff=0.6)
 
     if suggestion:
-        await message.reply(f"❌ **Không có từ khóa** `{text}`.\n👉 Bạn có muốn nhập: **`{suggestion[0]}`** không?")
+        await message.reply(f"❌ **Không có từ khóa** `{text}`.\n👉 Có phải bạn muốn: **`{suggestion[0]}`** không?")
     else:
         await message.reply("❌ Từ khóa không hợp lệ! Hãy kiểm tra lại.")
 
