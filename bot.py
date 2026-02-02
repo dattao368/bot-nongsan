@@ -16,8 +16,8 @@ if TOKEN is None:
 # ==========================
 # 📡 ID KÊNH
 # ==========================
-CHANNEL_PHU_ID = 1465291905368854570      # Kênh phụ: người dùng gửi
-CHANNEL_CHINH_ID = 1466801337361764506    # Kênh chính: bot gửi thông báo
+CHANNEL_PHU_ID = 1465291905368854570      
+CHANNEL_CHINH_ID = 1466801337361764506    
 
 # ==========================
 # 🌾 ROLE ID NÔNG DÂN
@@ -69,10 +69,10 @@ DUNG_CU = {
 ALL_KEYWORDS = {**NONG_SAN, **THOI_TIET, **DUNG_CU}
 
 # ==========================
-# 🕒 COOLDOWN 7 GIÂY
+# 🕒 COOLDOWN CHỐNG SPAM
 # ==========================
-cooldown = {}
-COOLDOWN_TIME = 7
+last_report = {}  # {user_id: {"keyword": text, "time": timestamp}}
+COOLDOWN_TIME = 2  # chỉ chống spam 1 từ lặp lại
 
 # ==========================
 # 📌 GỬI THÔNG BÁO
@@ -108,42 +108,53 @@ async def on_message(message):
     if message.author.bot:
         return
 
-    # ❗ Chỉ đọc tin nhắn từ kênh phụ
     if message.channel.id != CHANNEL_PHU_ID:
         return
 
     user_id = message.author.id
     now = time.time()
-
-    # COOLDOWN
-    if user_id in cooldown and now - cooldown[user_id] < COOLDOWN_TIME:
-        return
-
-    cooldown[user_id] = now
-
     text = message.content.lower().strip()
 
-    # TỪ KHÓA HỢP LỆ
-    if text in NONG_SAN:
-        ten, emoji = NONG_SAN[text]
-        await gui_thong_bao(message, "NÔNG SẢN", ten, emoji)
+    # ========== CHỐNG SPAM CÙNG TỪ ==========
+    if user_id in last_report:
+        last_text = last_report[user_id]["keyword"]
+        last_time = last_report[user_id]["time"]
 
-    elif text in THOI_TIET:
-        ten, emoji = THOI_TIET[text]
-        await gui_thong_bao(message, "THỜI TIẾT", ten, emoji)
+        if text == last_text and now - last_time < COOLDOWN_TIME:
+            return  # ignore nếu spam cùng từ quá nhanh
 
-    elif text in DUNG_CU:
-        ten, emoji = DUNG_CU[text]
-        await gui_thong_bao(message, "DỤNG CỤ", ten, emoji)
+    last_report[user_id] = {"keyword": text, "time": now}
 
+    # ========== HỖ TRỢ NHIỀU TỪ TRONG 1 TIN ==========
+    parts = [x.strip() for x in text.split(",")]
+    found = False
+
+    for p in parts:
+        if p in NONG_SAN:
+            ten, emoji = NONG_SAN[p]
+            await gui_thong_bao(message, "NÔNG SẢN", ten, emoji)
+            found = True
+
+        elif p in THOI_TIET:
+            ten, emoji = THOI_TIET[p]
+            await gui_thong_bao(message, "THỜI TIẾT", ten, emoji)
+            found = True
+
+        elif p in DUNG_CU:
+            ten, emoji = DUNG_CU[p]
+            await gui_thong_bao(message, "DỤNG CỤ", ten, emoji)
+            found = True
+
+    if found:
+        return  # đã xử lý xong nhiều từ → không kiểm tra thêm
+
+    # ========== GỢI Ý TỪ KHÓA ==========
+    suggestion = difflib.get_close_matches(text, ALL_KEYWORDS.keys(), n=1, cutoff=0.6)
+
+    if suggestion:
+        await message.reply(f"❌ **Không có từ khóa** `{text}`.\n👉 Bạn có muốn nhập: **`{suggestion[0]}`** không?")
     else:
-        # Gợi ý từ gần giống
-        suggestion = difflib.get_close_matches(text, ALL_KEYWORDS.keys(), n=1, cutoff=0.6)
-
-        if suggestion:
-            await message.reply(f"❌ **Không có từ khóa** `{text}`.\n👉 Bạn có muốn nhập: **`{suggestion[0]}`** không?")
-        else:
-            await message.reply("❌ Từ khóa không hợp lệ! Hãy kiểm tra lại.")
+        await message.reply("❌ Từ khóa không hợp lệ! Hãy kiểm tra lại.")
 
     await bot.process_commands(message)
 
