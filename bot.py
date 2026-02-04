@@ -2,7 +2,6 @@ import discord
 from discord.ext import commands, tasks
 import os, time, json
 import datetime
-from datetime import timedelta
 import difflib
 
 # ==========================
@@ -15,7 +14,7 @@ if TOKEN is None:
     exit()
 
 # ==========================
-# 📌 ID KÊNH (SỬA LẠI ĐÚNG SERVER)
+# 📌 ID KÊNH
 # ==========================
 CHANNEL_PHU_ID = 1465291905368854570
 CHANNEL_CHINH_ID = 1466801337361764506
@@ -30,19 +29,12 @@ CHANNEL_TOP_THOI_TIET = 1468562439930118367
 ROLE_PING_TOP = 1465291719087100059
 
 # ==========================
-# 🎖️ ROLE THƯỞNG STREAK
-# ==========================
-ROLE_CHAM_CHI_ID = 1468564029508292618   # 1 ngày
-ROLE_CHUYEN_CAN_ID = 1468564132608344076 # 3 ngày
-ROLE_UU_TU_ID = 1468564197309808661     # 7 ngày
-
-# ==========================
-# 🖼️ BANNER EMBED
+# 🖼️ BANNER TOP TUẦN
 # ==========================
 BANNER_URL = "https://i.imgur.com/6QZ7W9N.png"
 
 # ==========================
-# 🌾 NÔNG SẢN (PLACEHOLDER EMOJI)
+# 🌾 NÔNG SẢN
 # ==========================
 NONG_SAN = {
     "bí ngô": ("Bí Ngô", "<:bi_ngo:1468559344676110529>"),
@@ -56,7 +48,7 @@ NONG_SAN = {
 }
 
 # ==========================
-# 🛠️ CÔNG CỤ (PLACEHOLDER)
+# 🛠️ CÔNG CỤ
 # ==========================
 CONG_CU = {
     "vòi đỏ": ("Vòi Đỏ", "<:voi_do:1468565773592301619>"),
@@ -83,33 +75,36 @@ THOI_TIET = {
 ALL_KEYWORDS = {**NONG_SAN, **CONG_CU, **THOI_TIET}
 
 # ==========================
-# ⏳ RESET TIME
+# ⏳ RESET TIME CHỐNG SPAM
 # ==========================
 RESET_TIME = {
-    "nong_san": 300,     # 5 phút
-    "cong_cu": 1800,     # 30 phút
-    "thoi_tiet": 300     # 5 phút
+    "nong_san": 300,
+    "cong_cu": 1800,
+    "thoi_tiet": 300
 }
 
 da_bao = {"nong_san": {}, "cong_cu": {}, "thoi_tiet": {}}
 
 # ==========================
-# 🏆 JSON DATA
+# 🏆 FILE TOP TUẦN
 # ==========================
-DATA_FILE = "thuong.json"
+TOP_FILE = "top_week.json"
 
-def load_data():
+
+def load_top():
     try:
-        with open(DATA_FILE, "r", encoding="utf-8") as f:
+        with open(TOP_FILE, "r", encoding="utf-8") as f:
             return json.load(f)
     except:
-        return {}
+        return {"nong_san": {}, "cong_cu": {}, "thoi_tiet": {}}
 
-def save_data(data):
-    with open(DATA_FILE, "w", encoding="utf-8") as f:
+
+def save_top(data):
+    with open(TOP_FILE, "w", encoding="utf-8") as f:
         json.dump(data, f, ensure_ascii=False, indent=4)
 
-thuong_data = load_data()
+
+top_data = load_top()
 
 # ==========================
 # 🤖 BOT SETUP
@@ -119,39 +114,23 @@ intents.message_content = True
 bot = commands.Bot(command_prefix="!", intents=intents)
 
 # ==========================
-# 🎖️ THƯỞNG ROLE STREAK
-# ==========================
-async def cap_nhat_role(member, streak):
-    guild = member.guild
-
-    role1 = guild.get_role(ROLE_CHAM_CHI_ID)
-    role3 = guild.get_role(ROLE_CHUYEN_CAN_ID)
-    role7 = guild.get_role(ROLE_UU_TU_ID)
-
-    await member.remove_roles(role1, role3, role7)
-
-    if streak >= 7:
-        await member.add_roles(role7)
-    elif streak >= 3:
-        await member.add_roles(role3)
-    else:
-        await member.add_roles(role1)
-
-# ==========================
 # 📢 EMBED THÔNG BÁO
 # ==========================
-async def gui_embed(channel, desc):
-    embed = discord.Embed(title="📢 THÔNG BÁO", description=desc, color=0x00ff99)
-    embed.set_image(url=BANNER_URL)
+async def gui_embed(channel, title, desc, banner=False):
+    embed = discord.Embed(title=title, description=desc, color=0x00ff99)
+
+    if banner:
+        embed.set_image(url=BANNER_URL)
+
     await channel.send(embed=embed)
 
 # ==========================
-# 📌 XỬ LÝ BÁO
+# 📌 XỬ LÝ BÁO + CỘNG TOP
 # ==========================
 async def xu_ly_bao(message, loai, ten, emoji, bien_the=None):
     now = time.time()
 
-    # chống trùng
+    # chống trùng spam
     if ten in da_bao[loai]:
         if now - da_bao[loai][ten] < RESET_TIME[loai]:
             await message.reply("❌ Đã có người báo rồi!")
@@ -159,36 +138,91 @@ async def xu_ly_bao(message, loai, ten, emoji, bien_the=None):
 
     da_bao[loai][ten] = now
 
+    # cộng điểm TOP tuần
+    uid = str(message.author.id)
+    if uid not in top_data[loai]:
+        top_data[loai][uid] = {"count": 0}
+
+    top_data[loai][uid]["count"] += 1
+    save_top(top_data)
+
     channel = bot.get_channel(CHANNEL_CHINH_ID)
 
+    # ===== FORMAT ĐÚNG Ý BẠN =====
     if loai == "nong_san":
-        desc = f"{emoji} **{ten} đang bán ở shop Yeongman**\n⏳ Reset: 5 phút"
+        desc = (
+            f"{emoji} **{ten}**\n"
+            f"🛒 đang bán ở shop [ Yeongman ]\n"
+            f"⏳ Làm Mới Sau: 5 phút"
+        )
 
     elif loai == "cong_cu":
-        desc = f"{emoji} **{ten} đang bán ở shop Lena**\n⏳ Reset: 30 phút"
+        desc = (
+            f"{emoji} **{ten}**\n"
+            f"🛠️ đang bán ở shop [ Lena ]\n"
+            f"⏳ Làm Mới Sau: 30 phút"
+        )
 
-    else:
-        desc = f"{emoji} **{ten} xuất hiện**\n✨ Xuất hiện biến thể: [{bien_the}]"
+    else:  # THỜI TIẾT
+        desc = (
+            f"{emoji} **{ten}**\n"
+            f"xuất hiện biến thể [ {bien_the} ]"
+        )
 
-    await gui_embed(channel, desc)
+    await gui_embed(channel, "📢 THÔNG BÁO", desc)
 
 # ==========================
-# 👤 LỆNH !me
+# 🏆 AUTO TOP TUẦN (THỨ 2 00:00)
 # ==========================
-@bot.command()
-async def me(ctx):
-    uid = str(ctx.author.id)
+@tasks.loop(minutes=1)
+async def auto_top_week():
+    now = datetime.datetime.now()
 
-    if uid not in thuong_data:
-        await ctx.send("❌ Bạn chưa có dữ liệu!")
-        return
+    if now.weekday() == 0 and now.hour == 0 and now.minute == 0:
 
-    info = thuong_data[uid]
+        async def send_top(loai, channel_id, title):
+            channel = bot.get_channel(channel_id)
+            if channel is None:
+                return
 
-    embed = discord.Embed(title="👤 Thống kê cá nhân", color=0xffcc00)
-    embed.add_field(name="🔥 Streak", value=f"{info['streak']} ngày", inline=False)
+            data = top_data.get(loai, {})
 
-    await ctx.send(embed=embed)
+            if not data:
+                await channel.send(f"❌ Tuần này chưa ai báo {title}")
+                return
+
+            top_list = sorted(
+                data.items(),
+                key=lambda x: x[1]["count"],
+                reverse=True
+            )[:5]
+
+            text = ""
+            rank = 1
+
+            for uid, info in top_list:
+                member = channel.guild.get_member(int(uid))
+                name = member.mention if member else f"<@{uid}>"
+
+                text += f"#{rank} {name} — ⭐ {info['count']} lần báo\n"
+                rank += 1
+
+            await channel.send(f"<@&{ROLE_PING_TOP}> 🏆 {title} TUẦN!")
+
+            await gui_embed(
+                channel,
+                f"🏆 {title} TUẦN",
+                text,
+                banner=True
+            )
+
+            # reset tuần mới
+            top_data[loai].clear()
+            save_top(top_data)
+
+        await send_top("nong_san", CHANNEL_TOP_NONG_SAN, "TOP NÔNG SẢN")
+        await send_top("cong_cu", CHANNEL_TOP_CONG_CU, "TOP CÔNG CỤ")
+        await send_top("thoi_tiet", CHANNEL_TOP_THOI_TIET, "TOP THỜI TIẾT")
 
 # ==========================
 # 📩 ON MESSAGE
@@ -230,5 +264,6 @@ async def on_message(message):
 @bot.event
 async def on_ready():
     print("✅ Bot Online!")
+    auto_top_week.start()
 
 bot.run(TOKEN)
