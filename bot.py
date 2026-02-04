@@ -24,9 +24,9 @@ CHANNEL_TOP_CONG_CU = 1468562389443280927
 CHANNEL_TOP_THOI_TIET = 1468562439930118367
 
 # ==========================
-# 🌾 ROLE PING TOP
+# 🌾 ROLE PING THÔNG BÁO
 # ==========================
-ROLE_PING_TOP = 1465291719087100059
+ROLE_NONG_DAN_ID = 1465291719087100059
 
 # ==========================
 # 🖼️ BANNER TOP TUẦN
@@ -107,6 +107,16 @@ def save_top(data):
 top_data = load_top()
 
 # ==========================
+# ✅ LẤY LINK ẢNH EMOJI THUMBNAIL
+# ==========================
+def get_emoji_url(emoji_text):
+    if emoji_text.startswith("<:"):
+        emoji_id = emoji_text.split(":")[2].replace(">", "")
+        return f"https://cdn.discordapp.com/emojis/{emoji_id}.png"
+    return None
+
+
+# ==========================
 # 🤖 BOT SETUP
 # ==========================
 intents = discord.Intents.default()
@@ -116,8 +126,13 @@ bot = commands.Bot(command_prefix="!", intents=intents)
 # ==========================
 # 📢 EMBED THÔNG BÁO
 # ==========================
-async def gui_embed(channel, title, desc, banner=False):
+async def gui_embed(channel, title, desc, emoji_icon=None, banner=False):
     embed = discord.Embed(title=title, description=desc, color=0x00ff99)
+
+    if emoji_icon:
+        url = get_emoji_url(emoji_icon)
+        if url:
+            embed.set_thumbnail(url=url)
 
     if banner:
         embed.set_image(url=BANNER_URL)
@@ -125,12 +140,11 @@ async def gui_embed(channel, title, desc, banner=False):
     await channel.send(embed=embed)
 
 # ==========================
-# 📌 XỬ LÝ BÁO + CỘNG TOP
+# 📌 XỬ LÝ BÁO
 # ==========================
 async def xu_ly_bao(message, loai, ten, emoji, bien_the=None):
     now = time.time()
 
-    # chống trùng spam
     if ten in da_bao[loai]:
         if now - da_bao[loai][ten] < RESET_TIME[loai]:
             await message.reply("❌ Đã có người báo rồi!")
@@ -138,38 +152,42 @@ async def xu_ly_bao(message, loai, ten, emoji, bien_the=None):
 
     da_bao[loai][ten] = now
 
-    # cộng điểm TOP tuần
+    # cộng TOP tuần
     uid = str(message.author.id)
     if uid not in top_data[loai]:
         top_data[loai][uid] = {"count": 0}
-
     top_data[loai][uid]["count"] += 1
     save_top(top_data)
 
     channel = bot.get_channel(CHANNEL_CHINH_ID)
 
-    # ===== FORMAT ĐÚNG Ý BẠN =====
+    ping = f"<@&{ROLE_NONG_DAN_ID}>"
+
     if loai == "nong_san":
+        title = "🌾 THÔNG BÁO NÔNG SẢN"
         desc = (
             f"{emoji} **{ten}**\n"
-            f"🛒 đang bán ở shop [ Yeongman ]\n"
-            f"⏳ Làm Mới Sau: 5 phút"
+            f"🛒 đang bán ở shop **[ Yeongman ]**\n"
+            f"⏳ **Làm Mới Sau: 5 phút**"
         )
 
     elif loai == "cong_cu":
+        title = "🛠️ THÔNG BÁO CÔNG CỤ"
         desc = (
             f"{emoji} **{ten}**\n"
-            f"🛠️ đang bán ở shop [ Lena ]\n"
-            f"⏳ Làm Mới Sau: 30 phút"
+            f"🛠️ đang bán ở shop **[ Lena ]**\n"
+            f"⏳ **Làm Mới Sau: 30 phút**"
         )
 
-    else:  # THỜI TIẾT
+    else:
+        title = "🌦️ THÔNG BÁO THỜI TIẾT"
         desc = (
             f"{emoji} **{ten}**\n"
-            f"xuất hiện biến thể [ {bien_the} ]"
+            f"✨ xuất hiện biến thể **[ {bien_the} ]**"
         )
 
-    await gui_embed(channel, "📢 THÔNG BÁO", desc)
+    await channel.send(ping)
+    await gui_embed(channel, title, desc, emoji_icon=emoji)
 
 # ==========================
 # 🏆 AUTO TOP TUẦN (THỨ 2 00:00)
@@ -186,9 +204,8 @@ async def auto_top_week():
                 return
 
             data = top_data.get(loai, {})
-
             if not data:
-                await channel.send(f"❌ Tuần này chưa ai báo {title}")
+                await channel.send("❌ Tuần này chưa ai báo!")
                 return
 
             top_list = sorted(
@@ -197,17 +214,17 @@ async def auto_top_week():
                 reverse=True
             )[:5]
 
+            medals = ["🥇", "🥈", "🥉", "🏅", "🏅"]
             text = ""
             rank = 1
 
             for uid, info in top_list:
-                member = channel.guild.get_member(int(uid))
-                name = member.mention if member else f"<@{uid}>"
-
-                text += f"#{rank} {name} — ⭐ {info['count']} lần báo\n"
+                text += (
+                    f"{medals[rank-1]} **<@{uid}>** đã báo: **{info['count']}**\n"
+                )
                 rank += 1
 
-            await channel.send(f"<@&{ROLE_PING_TOP}> 🏆 {title} TUẦN!")
+            await channel.send(f"<@&{ROLE_NONG_DAN_ID}> 🏆 **{title} TUẦN**")
 
             await gui_embed(
                 channel,
