@@ -24,19 +24,16 @@ CHANNEL_TOP_CONG_CU = 1468562389443280927
 CHANNEL_TOP_THOI_TIET = 1468562439930118367
 
 # ==========================
-# 🌾 ROLE PING THÔNG BÁO
+# 🌾 ROLE PING
 # ==========================
 ROLE_NONG_DAN_ID = 1465291719087100059
 
 # ==========================
 # 🖼️ 2 BANNER RIÊNG
 # ==========================
+BANNER_MAIN_URL = "https://cdn.discordapp.com/attachments/1443938299646312691/1468620460655644829/ChatGPT_Image_21_51_11_4_thg_2_2026.png"
 
-# Banner khi bot báo ở kênh chính
-BANNER_THONG_BAO = "https://cdn.discordapp.com/attachments/1443938299646312690/1468611704110841988/ChatGPT_Image_21_12_55_4_thg_2_2026.png?ex=6984a6bb&is=6983553b&hm=79c78ff2d2b94d0a807c56dd90d60c829da4cf568d88e0c9a2bb38e5f685f049&"
-
-# Banner khi bot đăng TOP tuần
-BANNER_TOP_TUAN = "https://cdn.discordapp.com/attachments/1443938299646312690/1468617424797434099/ChatGPT_Image_21_37_31_4_thg_2_2026.png?ex=6984ac0f&is=69835a8f&hm=9760b6a60d140db6403df21ab1726650fd9e59895a35797d1755a9d079fec596&"
+BANNER_TOP_URL = "https://cdn.discordapp.com/attachments/1443938299646312691/1468620524585484425/ChatGPT_Image_21_15_49_4_thg_2_2026.png"
 
 # ==========================
 # 🌾 NÔNG SẢN
@@ -80,7 +77,7 @@ THOI_TIET = {
 ALL_KEYWORDS = {**NONG_SAN, **CONG_CU, **THOI_TIET}
 
 # ==========================
-# ⏳ RESET TIME CHỐNG SPAM
+# ⏳ RESET TIME
 # ==========================
 RESET_TIME = {
     "nong_san": 300,
@@ -95,6 +92,7 @@ da_bao = {"nong_san": {}, "cong_cu": {}, "thoi_tiet": {}}
 # ==========================
 TOP_FILE = "top_week.json"
 
+
 def load_top():
     try:
         with open(TOP_FILE, "r", encoding="utf-8") as f:
@@ -102,14 +100,16 @@ def load_top():
     except:
         return {"nong_san": {}, "cong_cu": {}, "thoi_tiet": {}}
 
+
 def save_top(data):
     with open(TOP_FILE, "w", encoding="utf-8") as f:
         json.dump(data, f, ensure_ascii=False, indent=4)
 
+
 top_data = load_top()
 
 # ==========================
-# ✅ LINK EMOJI THUMBNAIL
+# ✅ EMOJI URL
 # ==========================
 def get_emoji_url(emoji_text):
     if emoji_text.startswith("<:"):
@@ -125,12 +125,27 @@ intents.message_content = True
 bot = commands.Bot(command_prefix="!", intents=intents)
 
 # ==========================
+# 📢 EMBED
+# ==========================
+async def gui_embed(channel, title, desc, emoji_icon=None, banner_url=None):
+    embed = discord.Embed(title=title, description=desc, color=0x00ff99)
+
+    if emoji_icon:
+        url = get_emoji_url(emoji_icon)
+        if url:
+            embed.set_thumbnail(url=url)
+
+    if banner_url:
+        embed.set_image(url=banner_url)
+
+    await channel.send(embed=embed)
+
+# ==========================
 # 📌 XỬ LÝ BÁO
 # ==========================
 async def xu_ly_bao(message, loai, ten, emoji, bien_the=None):
     now = time.time()
 
-    # chống spam trùng
     if ten in da_bao[loai]:
         if now - da_bao[loai][ten] < RESET_TIME[loai]:
             await message.reply("❌ Đã có người báo rồi!")
@@ -147,53 +162,44 @@ async def xu_ly_bao(message, loai, ten, emoji, bien_the=None):
 
     channel = bot.get_channel(CHANNEL_CHINH_ID)
 
-    # ✅ Ping 1 dòng duy nhất
-    ping_text = f"<@&{ROLE_NONG_DAN_ID}> | {ten}"
+    ping_line = f"<@&{ROLE_NONG_DAN_ID}> **{ten}**"
 
-    # ======================
-    # FORMAT ĐÚNG NPC
-    # ======================
+    # ===== FORMAT =====
     if loai == "nong_san":
-        title = "📢 THÔNG BÁO NÔNG SẢN"
+        title = "🔔 THÔNG BÁO NÔNG SẢN"
         desc = (
             f"{emoji} **{ten}**\n"
             f"🛒 đang bán ở NPC: **[ Yeongman ]**\n"
-            f"⏳ Làm mới sau: **5 phút**"
+            f"⏳ **Làm Mới Sau: 5 phút**"
         )
 
     elif loai == "cong_cu":
-        title = "📢 THÔNG BÁO CÔNG CỤ"
+        title = "🔔 THÔNG BÁO CÔNG CỤ"
         desc = (
             f"{emoji} **{ten}**\n"
             f"🛠️ đang bán ở NPC: **[ Lena ]**\n"
-            f"⏳ Làm mới sau: **30 phút**"
+            f"⏳ **Làm Mới Sau: 30 phút**"
         )
 
     else:
-        title = "📢 THÔNG BÁO THỜI TIẾT"
+        title = "🔔 THÔNG BÁO THỜI TIẾT"
         desc = (
             f"{emoji} **{ten}**\n"
             f"xuất hiện biến thể: **[ {bien_the} ]**"
         )
 
-    # ======================
-    # EMBED THÔNG BÁO
-    # ======================
-    embed = discord.Embed(title=title, description=desc, color=0x00ff99)
-
-    # thumbnail emoji
-    url = get_emoji_url(emoji)
-    if url:
-        embed.set_thumbnail(url=url)
-
-    # banner thông báo riêng
-    embed.set_image(url=BANNER_THONG_BAO)
-
-    # ✅ gửi 1 tin nhắn duy nhất
-    await channel.send(content=ping_text, embed=embed)
+    # ✅ CHUNG 1 TIN NHẮN
+    await channel.send(
+        content=ping_line,
+        embed=discord.Embed(
+            title=title,
+            description=desc,
+            color=0x00ff99
+        ).set_thumbnail(url=get_emoji_url(emoji)).set_image(url=BANNER_MAIN_URL)
+    )
 
 # ==========================
-# 🏆 AUTO TOP TUẦN (THỨ 2 00:00)
+# 🏆 AUTO TOP TUẦN
 # ==========================
 @tasks.loop(minutes=1)
 async def auto_top_week():
@@ -208,7 +214,6 @@ async def auto_top_week():
 
             data = top_data.get(loai, {})
             if not data:
-                await channel.send("❌ Tuần này chưa ai báo!")
                 return
 
             top_list = sorted(
@@ -223,19 +228,13 @@ async def auto_top_week():
             for i, (uid, info) in enumerate(top_list):
                 text += f"{medals[i]} **<@{uid}>** đã báo: **{info['count']}**\n"
 
-            # embed TOP tuần
-            embed = discord.Embed(
-                title=f"🏆 {title} TUẦN",
-                description=text,
-                color=0xffcc00
+            await gui_embed(
+                channel,
+                f"🏆 {title} TUẦN",
+                text,
+                banner_url=BANNER_TOP_URL
             )
 
-            # banner top tuần riêng
-            embed.set_image(url=BANNER_TOP_TUAN)
-
-            await channel.send(embed=embed)
-
-            # reset tuần mới
             top_data[loai].clear()
             save_top(top_data)
 
