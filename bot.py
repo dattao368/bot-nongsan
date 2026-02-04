@@ -184,7 +184,7 @@ async def xu_ly_bao(message, loai, ten, emoji, npc=None, bien_the=None):
 
     else:
         title = "🔔 THÔNG BÁO THỜI TIẾT"
-        desc = f"{emoji} **{ten}**\n✨ Biến thể: **[{bien_the}]**"
+        desc = f"{emoji} **{ten}**\n Biến thể: **[{bien_the}]**"
 
     await channel.send(content=ping)
     await send_embed(channel, title, desc, emoji, BANNER_MAIN_URL)
